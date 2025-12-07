@@ -1,11 +1,17 @@
-type Point = { x: number; y: number }
+type Point = {
+    x: number
+    y: number
+}
 
 export type MazeResult = {
     matrix: string[]
     width: number
     height: number
     wallSize: number
-    entryNodes: { start: Point & { gate: Point }; end: Point & { gate: Point } }
+    entryNodes: {
+        start: Point & { gate: Point }
+        end: Point & { gate: Point }
+    }
     lastPath?: Point[]
 }
 
@@ -27,7 +33,12 @@ const getDirection = (a: number, b: number, width: number) => {
 }
 
 export function generateMaze(opts?: Partial<{ width: number; height: number; wallSize: number; entryType: string }>): MazeResult {
-    const { width = 20, height = 20, wallSize = 10, entryType = 'diagonal' } = opts || {}
+    const {
+        width = 20,
+        height = 20,
+        wallSize = 10,
+        entryType = 'diagonal'
+    } = opts || {}
 
     const count = width * height
     // node format: [inTreeFlag, north, south, west, east]
@@ -76,6 +87,7 @@ export function generateMaze(opts?: Partial<{ width: number; height: number; wal
         for (let i = 0; i < path.length - 1; i++) {
             const a = path[i]
             const b = path[i + 1]
+
             const dir = getDirection(a, b, width)
             if (!dir) continue
 
@@ -137,7 +149,10 @@ export function generateMaze(opts?: Partial<{ width: number; height: number; wal
     const entryNodes = entryType === 'diagonal' ? {
         start: { x: 1, y: 1, gate: { x: 0, y: 1 } },
         end: { x: x, y: y, gate: { x: x + 1, y: y } }
-    } : ({ start: { x: 1, y: 1, gate: { x: 0, y: 1 } }, end: { x: x, y: y, gate: { x: x + 1, y: y } } } as any)
+    } : ({
+        start: { x: 1, y: 1, gate: { x: 0, y: 1 } },
+        end: { x: x, y: y, gate: { x: x + 1, y: y } }
+    })
 
     // open entry/exit
     if (matrix[entryNodes.start.gate.y]) {
@@ -152,12 +167,16 @@ export function generateMaze(opts?: Partial<{ width: number; height: number; wal
 
 export function drawMaze(matrix: string[], wallSize: number, canvas: HTMLCanvasElement) {
     if (!matrix.length) return
+
     canvas.width = matrix[0].length * wallSize
     canvas.height = matrix.length * wallSize
+
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.fillStyle = '#000'
+
     for (let i = 0; i < matrix.length; i++) {
         for (let j = 0; j < matrix[i].length; j++) {
             if (matrix[i][j] === '1') ctx.fillRect(j * wallSize, i * wallSize, wallSize, wallSize)
@@ -167,39 +186,106 @@ export function drawMaze(matrix: string[], wallSize: number, canvas: HTMLCanvasE
 
 export function findPath(matrix: string[], entryNodes: MazeResult['entryNodes']): Point[] {
     if (!matrix.length) return []
+
     const start = entryNodes.start.gate
     const end = entryNodes.end.gate
+
     const h = (a: Point, b: Point) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
 
     const width = matrix[0].length
     const height = matrix.length
+
     const key = (p: Point) => `${p.x},${p.y}`
     const inBounds = (p: Point) => p.x >= 0 && p.x < width && p.y >= 0 && p.y < height
     const walkable = (p: Point) => inBounds(p) && matrix[p.y][p.x] === '0'
 
-    type Node = { p: Point; g: number; f: number; parent: Node | null }
+    type Node = {
+        p: Point
+        g: number
+        f: number
+        parent: Node | null
+    }
 
-    const neighbors = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]
+    const neighbors = [
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 }
+    ]
 
     // simple binary heap
     const heap: Node[] = []
-    const push = (n: Node) => { heap.push(n); siftUp(heap.length - 1) }
-    const pop = (): Node | undefined => { if (!heap.length) return undefined; const r = heap[0]; const end = heap.pop()!; if (heap.length) { heap[0] = end; siftDown(0) } return r }
-    const siftUp = (i: number) => { while (i > 0) { const p = Math.floor((i - 1) / 2); if (heap[p].f <= heap[i].f) break;[heap[p], heap[i]] = [heap[i], heap[p]]; i = p } }
-    const siftDown = (i: number) => { const n = heap.length; while (true) { let l = 2 * i + 1; let r = 2 * i + 2; let smallest = i; if (l < n && heap[l].f < heap[smallest].f) smallest = l; if (r < n && heap[r].f < heap[smallest].f) smallest = r; if (smallest === i) break;[heap[i], heap[smallest]] = [heap[smallest], heap[i]]; i = smallest } }
+    const push = (n: Node) => {
+        heap.push(n)
+        siftUp(heap.length - 1)
+    }
+    const pop = (): Node | undefined => {
+        if (!heap.length) return undefined
 
-    const startNode: Node = { p: { x: start.x, y: start.y }, g: 0, f: h(start, end), parent: null }
+        const r = heap[0]
+        const end = heap.pop()!
+
+        if (heap.length) {
+            heap[0] = end
+            siftDown(0)
+        }
+
+        return r
+    }
+    const siftUp = (i: number) => {
+        while (i > 0) {
+            const p = Math.floor((i - 1) / 2)
+
+            if (heap[p].f <= heap[i].f) break
+
+            [heap[p], heap[i]] = [heap[i], heap[p]]
+
+            i = p
+        }
+    }
+    const siftDown = (i: number) => {
+        const n = heap.length
+
+        while (true) {
+            let l = 2 * i + 1
+            let r = 2 * i + 2
+            let smallest = i
+
+            if (l < n && heap[l].f < heap[smallest].f) smallest = l
+            if (r < n && heap[r].f < heap[smallest].f) smallest = r
+            if (smallest === i) break
+
+            [heap[i], heap[smallest]] = [heap[smallest], heap[i]]
+
+            i = smallest
+        }
+    }
+
+    const startNode: Node = {
+        p: { x: start.x, y: start.y },
+        g: 0,
+        f: h(start, end),
+        parent: null
+    }
+
     push(startNode)
+
     const openMap = new Map<string, Node>([[key(startNode.p), startNode]])
     const closed = new Set<string>()
 
     while (heap.length) {
         const current = pop()!
         openMap.delete(key(current.p))
+
         if (current.p.x === end.x && current.p.y === end.y) {
             const path: Point[] = []
             let cur: Node | null = current
-            while (cur) { path.push({ x: cur.p.x, y: cur.p.y }); cur = cur.parent }
+
+            while (cur) {
+                path.push({ x: cur.p.x, y: cur.p.y })
+                cur = cur.parent
+            }
+
             path.reverse()
             return path
         }
@@ -207,13 +293,24 @@ export function findPath(matrix: string[], entryNodes: MazeResult['entryNodes'])
         closed.add(key(current.p))
 
         for (const d of neighbors) {
-            const np = { x: current.p.x + d.x, y: current.p.y + d.y }
+            const np = {
+                x: current.p.x + d.x,
+                y: current.p.y + d.y
+            }
             const nk = key(np)
+
             if (!walkable(np) || closed.has(nk)) continue
+
             const tentativeG = current.g + 1
             const existing = openMap.get(nk)
+
             if (!existing || tentativeG < existing.g) {
-                const neighborNode: Node = { p: np, g: tentativeG, f: tentativeG + h(np, end), parent: current }
+                const neighborNode: Node = {
+                    p: np,
+                    g: tentativeG,
+                    f: tentativeG + h(np, end),
+                    parent: current
+                }
                 push(neighborNode)
                 openMap.set(nk, neighborNode)
             }

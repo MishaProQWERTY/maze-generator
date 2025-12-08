@@ -1,8 +1,7 @@
-import { StrictMode, useRef, useState } from 'react'
-import { createRoot } from 'react-dom/client'
-import { generateMaze, drawMaze, findPath, drawPath } from './maze'
-import type { MazeResult } from './maze'
 import './styles.css'
+import { useState, useRef, StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { Maze } from './maze'
 
 const Slider = ({ label, min, max, value, onChange }: { label: string; min: number; max: number; value: number; onChange: (v: number) => void }) => {
     return (
@@ -17,26 +16,31 @@ const Slider = ({ label, min, max, value, onChange }: { label: string; min: numb
 
 const App = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
-    const [maze, setMaze] = useState<MazeResult | null>(null)
+    const [maze, setMaze] = useState<Maze | null>(null)
 
     const [width, setWidth] = useState(20)
     const [height, setHeight] = useState(20)
     const [wallSize, setWallSize] = useState(8)
 
     const handleCreate = () => {
-        const m = generateMaze({ width, height, wallSize })
+        const m = Maze.generate({ width, height, wallSize })
         setMaze(m)
+
         const canvas = canvasRef.current
         if (canvas) {
-            drawMaze(m.matrix, m.wallSize, canvas)
+            m.draw(canvas)
         }
     }
 
     const handleSolve = () => {
         if (!maze) return
-        const path = findPath(maze.matrix, maze.entryNodes)
+
+        const path = maze.findPath()
+
         const canvas = canvasRef.current
-        if (canvas) drawPath(path, canvas, maze.wallSize, 'rgba(220,20,60,0.95)')
+        if (canvas) {
+            maze.drawPath(path, canvas, 'rgba(220,20,60,0.95)')
+        }
     }
 
     const handleSave = () => {
